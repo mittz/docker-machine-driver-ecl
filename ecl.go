@@ -17,7 +17,7 @@ import (
 
 type Driver struct {
 	*drivers.BaseDriver
-	AuthURL          string
+	AuthUrl          string
 	ActiveTimeout    int
 	Insecure         bool
 	CaCert           string
@@ -26,23 +26,21 @@ type Driver struct {
 	Username         string
 	Password         string
 	TenantName       string
-	TenantID         string
+	TenantId         string
 	AvailabilityZone string
 	EndpointType     string
-	MachineID        string
+	MachineId        string
 	FlavorName       string
-	FlavorID         string
+	FlavorId         string
 	ImageName        string
-	ImageID          string
+	ImageId          string
 	KeyPairName      string
 	NetworkName      string
-	NetworkID        string
+	NetworkId        string
 	UserData         []byte
 	PrivateKeyFile   string
-	FloatingIPPool   string
 	ComputeNetwork   bool
-	FloatingIPPoolID string
-	IPVersion        int
+	IpVersion        int
 	client           Client
 }
 
@@ -52,6 +50,7 @@ const (
 	defaultActiveTimeout = 200
 	defaultDomainID      = "default"
 	defaultEndpointType  = "publicURL"
+	fixedIPVersion       = 4
 )
 
 func (d *Driver) GetCreateFlags() []mcnflag.Flag {
@@ -227,7 +226,7 @@ func (d *Driver) DriverName() string {
 }
 
 func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
-	d.AuthURL = flags.String("ecl-auth-url")
+	d.AuthUrl = flags.String("ecl-auth-url")
 	d.ActiveTimeout = flags.Int("ecl-active-timeout")
 	d.Insecure = flags.Bool("ecl-insecure")
 	d.CaCert = flags.String("ecl-cacert")
@@ -236,15 +235,16 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.Username = flags.String("ecl-username")
 	d.Password = flags.String("ecl-password")
 	d.TenantName = flags.String("ecl-tenant-name")
-	d.TenantID = flags.String("ecl-tenant-id")
+	d.TenantId = flags.String("ecl-tenant-id")
 	d.AvailabilityZone = flags.String("ecl-availability-zone")
 	d.EndpointType = flags.String("ecl-endpoint-type")
-	d.FlavorID = flags.String("ecl-flavor-id")
+	d.FlavorId = flags.String("ecl-flavor-id")
 	d.FlavorName = flags.String("ecl-flavor-name")
-	d.ImageID = flags.String("ecl-image-id")
+	d.ImageId = flags.String("ecl-image-id")
 	d.ImageName = flags.String("ecl-image-name")
-	d.NetworkID = flags.String("ecl-net-id")
+	d.NetworkId = flags.String("ecl-net-id")
 	d.NetworkName = flags.String("ecl-net-name")
+	d.IpVersion = fixedIPVersion
 	d.SSHUser = flags.String("ecl-ssh-user")
 	d.SSHPort = flags.Int("ecl-ssh-port")
 	d.KeyPairName = flags.String("ecl-keypair-name")
@@ -285,7 +285,7 @@ func (d *Driver) GetIP() (string, error) {
 		return d.IPAddress, nil
 	}
 
-	log.Debug("Looking for the IP address...", map[string]string{"MachineID": d.MachineID})
+	log.Debug("Looking for the IP address...", map[string]string{"MachineId": d.MachineId})
 
 	if err := d.initCompute(); err != nil {
 		return "", err
@@ -300,7 +300,7 @@ func (d *Driver) GetIP() (string, error) {
 			return "", err
 		}
 		for _, a := range addresses {
-			if a.AddressType == addressType && a.Version == d.IPVersion {
+			if a.AddressType == addressType && a.Version == d.IpVersion {
 				return a.Address, nil
 			}
 		}
@@ -310,7 +310,7 @@ func (d *Driver) GetIP() (string, error) {
 }
 
 func (d *Driver) GetState() (state.State, error) {
-	log.Debug("Get status for ecl instance...", map[string]string{"MachineID": d.MachineID})
+	log.Debug("Get status for ecl instance...", map[string]string{"MachineId": d.MachineId})
 	if err := d.initCompute(); err != nil {
 		return state.None, err
 	}
@@ -321,7 +321,7 @@ func (d *Driver) GetState() (state.State, error) {
 	}
 
 	log.Debug("State for ecl instance", map[string]string{
-		"MachineID": d.MachineID,
+		"MachineId": d.MachineId,
 		"State":     s,
 	})
 
@@ -397,7 +397,7 @@ func (d *Driver) Kill() error {
 }
 
 func (d *Driver) Remove() error {
-	log.Debug("deleting instance...", map[string]string{"MachineID": d.MachineID})
+	log.Debug("deleting instance...", map[string]string{"MachineId": d.MachineId})
 	log.Info("Deleting ecl instance...")
 	if err := d.initCompute(); err != nil {
 		return err
@@ -427,7 +427,7 @@ const (
 )
 
 func (d *Driver) checkConfig() error {
-	if d.AuthURL == "" {
+	if d.AuthUrl == "" {
 		return fmt.Errorf(errorMandatoryEnvOrOption, "Authentication URL", "ECL_AUTH_URL", "--ecl-auth-url")
 	}
 	if d.Username == "" {
@@ -436,25 +436,25 @@ func (d *Driver) checkConfig() error {
 	if d.Password == "" {
 		return fmt.Errorf(errorMandatoryEnvOrOption, "Password", "ECL_PASSWORD", "--ecl-password")
 	}
-	if d.TenantName == "" && d.TenantID == "" {
+	if d.TenantName == "" && d.TenantId == "" {
 		return fmt.Errorf(errorMandatoryTenantNameOrID)
 	}
 
-	if d.FlavorName == "" && d.FlavorID == "" {
+	if d.FlavorName == "" && d.FlavorId == "" {
 		return fmt.Errorf(errorMandatoryOption, "Flavor name or Flavor id", "--ecl-flavor-name or --ecl-flavor-id")
 	}
-	if d.FlavorName != "" && d.FlavorID != "" {
+	if d.FlavorName != "" && d.FlavorId != "" {
 		return fmt.Errorf(errorExclusiveOptions, "Flavor name", "Flavor id")
 	}
 
-	if d.ImageName == "" && d.ImageID == "" {
+	if d.ImageName == "" && d.ImageId == "" {
 		return fmt.Errorf(errorMandatoryOption, "Image name or Image id", "--ecl-image-name or --ecl-image-id")
 	}
-	if d.ImageName != "" && d.ImageID != "" {
+	if d.ImageName != "" && d.ImageId != "" {
 		return fmt.Errorf(errorExclusiveOptions, "Image name", "Image id")
 	}
 
-	if d.NetworkName != "" && d.NetworkID != "" {
+	if d.NetworkName != "" && d.NetworkId != "" {
 		return fmt.Errorf(errorExclusiveOptions, "Network name", "Network id")
 	}
 	if d.EndpointType != "" && (d.EndpointType != "publicURL" && d.EndpointType != "adminURL" && d.EndpointType != "internalURL") {
@@ -482,10 +482,10 @@ func (d *Driver) resolveIds() error {
 			return fmt.Errorf(errorUnknownNetworkName, d.NetworkName)
 		}
 
-		d.NetworkID = networkID
+		d.NetworkId = networkID
 		log.Debug("Found network id using its name", map[string]string{
 			"Name": d.NetworkName,
-			"ID":   d.NetworkID,
+			"ID":   d.NetworkId,
 		})
 	}
 
@@ -503,10 +503,10 @@ func (d *Driver) resolveIds() error {
 			return fmt.Errorf(errorUnknownFlavorName, d.FlavorName)
 		}
 
-		d.FlavorID = flavorID
+		d.FlavorId = flavorID
 		log.Debug("Found flavor id using its name", map[string]string{
 			"Name": d.FlavorName,
-			"ID":   d.FlavorID,
+			"ID":   d.FlavorId,
 		})
 	}
 
@@ -524,31 +524,31 @@ func (d *Driver) resolveIds() error {
 			return fmt.Errorf(errorUnknownImageName, d.ImageName)
 		}
 
-		d.ImageID = imageID
+		d.ImageId = imageID
 		log.Debug("Found image id using its name", map[string]string{
 			"Name": d.ImageName,
-			"ID":   d.ImageID,
+			"ID":   d.ImageId,
 		})
 	}
 
-	if d.TenantName != "" && d.TenantID == "" {
+	if d.TenantName != "" && d.TenantId == "" {
 		if err := d.initIdentity(); err != nil {
 			return err
 		}
-		tenantID, err := d.client.GetTenantID(d)
+		TenantId, err := d.client.GetTenantID(d)
 
 		if err != nil {
 			return err
 		}
 
-		if tenantID == "" {
+		if TenantId == "" {
 			return fmt.Errorf(errorUnknownTenantName, d.TenantName)
 		}
 
-		d.TenantID = tenantID
+		d.TenantId = TenantId
 		log.Debug("Found tenant id using its name", map[string]string{
 			"Name": d.TenantName,
-			"ID":   d.TenantID,
+			"ID":   d.TenantId,
 		})
 	}
 
@@ -631,8 +631,8 @@ func (d *Driver) createSSHKey() error {
 
 func (d *Driver) createMachine() error {
 	log.Debug("Creating ecl instance...", map[string]string{
-		"FlavorID": d.FlavorID,
-		"ImageID":  d.ImageID,
+		"FlavorId": d.FlavorId,
+		"ImageId":  d.ImageId,
 	})
 
 	if err := d.initCompute(); err != nil {
@@ -642,12 +642,12 @@ func (d *Driver) createMachine() error {
 	if err != nil {
 		return err
 	}
-	d.MachineID = instanceID
+	d.MachineId = instanceID
 	return nil
 }
 
 func (d *Driver) waitForInstanceActive() error {
-	log.Debug("Waiting for the ecl instance to be ACTIVE...", map[string]string{"MachineID": d.MachineID})
+	log.Debug("Waiting for the ecl instance to be ACTIVE...", map[string]string{"MachineId": d.MachineId})
 	if err := d.client.WaitForInstanceStatus(d, "ACTIVE"); err != nil {
 		return err
 	}
@@ -662,7 +662,7 @@ func (d *Driver) lookForIPAddress() error {
 	d.IPAddress = ip
 	log.Debug("IP address found", map[string]string{
 		"IP":        ip,
-		"MachineID": d.MachineID,
+		"MachineId": d.MachineId,
 	})
 	return nil
 }

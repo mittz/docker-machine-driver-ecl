@@ -58,15 +58,15 @@ type GenericClient struct {
 func (c *GenericClient) CreateInstance(d *Driver) (string, error) {
 	serverOpts := servers.CreateOpts{
 		Name:             d.MachineName,
-		FlavorRef:        d.FlavorID,
-		ImageRef:         d.ImageID,
+		FlavorRef:        d.FlavorId,
+		ImageRef:         d.ImageId,
 		UserData:         d.UserData,
 		AvailabilityZone: d.AvailabilityZone,
 	}
-	if d.NetworkID != "" {
+	if d.NetworkId != "" {
 		serverOpts.Networks = []servers.Network{
 			{
-				UUID: d.NetworkID,
+				UUID: d.NetworkId,
 			},
 		}
 	}
@@ -104,28 +104,28 @@ func (c *GenericClient) GetInstanceState(d *Driver) (string, error) {
 }
 
 func (c *GenericClient) StartInstance(d *Driver) error {
-	if result := startstop.Start(c.Compute, d.MachineID); result.Err != nil {
+	if result := startstop.Start(c.Compute, d.MachineId); result.Err != nil {
 		return result.Err
 	}
 	return nil
 }
 
 func (c *GenericClient) StopInstance(d *Driver) error {
-	if result := startstop.Stop(c.Compute, d.MachineID); result.Err != nil {
+	if result := startstop.Stop(c.Compute, d.MachineId); result.Err != nil {
 		return result.Err
 	}
 	return nil
 }
 
 func (c *GenericClient) RestartInstance(d *Driver) error {
-	if result := servers.Reboot(c.Compute, d.MachineID, servers.SoftReboot); result.Err != nil {
+	if result := servers.Reboot(c.Compute, d.MachineId, servers.SoftReboot); result.Err != nil {
 		return result.Err
 	}
 	return nil
 }
 
 func (c *GenericClient) DeleteInstance(d *Driver) error {
-	if result := servers.Delete(c.Compute, d.MachineID); result.Err != nil {
+	if result := servers.Delete(c.Compute, d.MachineId); result.Err != nil {
 		return result.Err
 	}
 	return nil
@@ -133,7 +133,7 @@ func (c *GenericClient) DeleteInstance(d *Driver) error {
 
 func (c *GenericClient) WaitForInstanceStatus(d *Driver, status string) error {
 	return mcnutils.WaitForSpecificOrError(func() (bool, error) {
-		current, err := servers.Get(c.Compute, d.MachineID).Extract()
+		current, err := servers.Get(c.Compute, d.MachineId).Extract()
 		if err != nil {
 			return true, err
 		}
@@ -311,7 +311,7 @@ func (c *GenericClient) DeleteKeyPair(d *Driver, name string) error {
 }
 
 func (c *GenericClient) GetServerDetail(d *Driver) (*servers.Server, error) {
-	server, err := servers.Get(c.Compute, d.MachineID).Extract()
+	server, err := servers.Get(c.Compute, d.MachineId).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -320,8 +320,8 @@ func (c *GenericClient) GetServerDetail(d *Driver) (*servers.Server, error) {
 
 func (c *GenericClient) GetInstancePortID(d *Driver) (string, error) {
 	pager := ports.List(c.Network, ports.ListOpts{
-		DeviceID:  d.MachineID,
-		NetworkID: d.NetworkID,
+		DeviceID:  d.MachineId,
+		NetworkID: d.NetworkId,
 	})
 
 	var portID string
@@ -399,24 +399,24 @@ func (c *GenericClient) Authenticate(d *Driver) error {
 	}
 
 	log.Debug("Authenticating...", map[string]interface{}{
-		"AuthURL":    d.AuthURL,
+		"AuthUrl":    d.AuthUrl,
 		"Insecure":   d.Insecure,
 		"CaCert":     d.CaCert,
 		"DomainID":   d.DomainID,
 		"DomainName": d.DomainName,
 		"Username":   d.Username,
 		"TenantName": d.TenantName,
-		"TenantID":   d.TenantID,
+		"TenantId":   d.TenantId,
 	})
 
 	opts := gophercloud.AuthOptions{
-		IdentityEndpoint: d.AuthURL,
+		IdentityEndpoint: d.AuthUrl,
 		DomainID:         d.DomainID,
 		DomainName:       d.DomainName,
 		Username:         d.Username,
 		Password:         d.Password,
 		TenantName:       d.TenantName,
-		TenantID:         d.TenantID,
+		TenantID:         d.TenantId,
 		AllowReauth:      true,
 	}
 
